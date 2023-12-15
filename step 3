@@ -6,29 +6,26 @@ import cartopy.feature as cfeature
 import matplotlib.colors
 
 
-file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc')
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc') #substitute with the path to your dataset in your machine
 geop = file['z'][:]
-omega=1
-r=6371000
-geop500=geop[0,0]
+omega=1 #not use here
+r=6371000 #mean radius of the earth
+geop500=geop[0,0] #switch the second zero to 1 for the 1000hPa geopotential
 
 lon = file.variables['longitude'][:]
 lat = file.variables['latitude'][:]
 
-delt_phi = np.radians(180)/len(lat)  #dlon
-delt_lambda = np.radians(360)/len(lon) #dlat
+delt_phi = np.radians(180)/len(lat)  #dlat
+delt_lambda = np.radians(360)/len(lon) #dlon
 
 
 geo_phideriv = np.zeros((len(lat),len(lon)))
 geo_lambdaderiv = np.zeros((len(lat),len(lon)))
 
-gradx=np.zeros((len(lat),len(lon)))
-grady=np.zeros((len(lat),len(lon)))
+gradx=np.zeros((len(lat),len(lon))) #zonal component grad
+grady=np.zeros((len(lat),len(lon))) #meridionnal component grad
 
-vgx=np.zeros((len(lat),len(lon)))
-vgy=np.zeros((len(lat),len(lon)))
-
-
+#derivative for our gradient
 for i in range(len(lat)-1) :
     for j in range(len(lon)-1) :
         if i==0 and j<=719 :
@@ -49,7 +46,7 @@ for i in range(len(lat)-1) :
             geo_lambdaderiv[i,j]=(geop500[i,j+1]-geop500[i,j-1])/(2*delt_lambda)
             geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
 
-
+#gradient compilation
 for i in range(len(lat)) :
     for j in range(len(lon)) :
         gradx[i,j]=((1/(r*np.cos(np.radians(lat[i]))))*geo_lambdaderiv[i,j])
@@ -57,10 +54,10 @@ for i in range(len(lat)) :
         
 
 N = np.sqrt( gradx**2 + grady**2 )  # normalize data
-Ni = np.sqrt( gradx**2)
-Nj = np.sqrt( grady**2)
-U1, V1 = gradx/N, grady/N
-U = gradx/Ni
+Ni = np.sqrt( gradx**2) # normalize data for zonal component
+Nj = np.sqrt( grady**2) # normalize data for merid component
+U1, V1 = gradx/N, grady/N #normalized quivers
+U = gradx/Ni #same for zonal and merid
 V = grady/Nj
 
 color = N
@@ -78,12 +75,17 @@ ax.add_feature(cfeature.LAND, edgecolor='k')
 
 zero=np.zeros((721,1440))
 levels = np.arange(48000,59000 + 100,1000)
+
+
+#uncomment to get geopotential field on the figure + uncomment line 89
 contour = ax.contourf(lon, lat, geop500, levels = levels,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both') #geop500
+
+#uncomment the desired ax.quiver line to get respectively zonal component, meridional component or both
 # q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U[40:680:10,::10], zero[40:680:10,::10], color_i[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #zonale
 # q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], zero[40:680:10,::10], V[40:680:10,::10], color_j[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #mérid
-q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #both
+# q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #both
 clb=plt.colorbar(q,orientation='vertical')
 clb.ax.set_title('Grad Geopotential (m s**-2)')
-plt.colorbar(contour,label=f'{file["z"].long_name} ({file["z"].units})', orientation='horizontal', fraction=0.05, pad=0.15)
-plt.savefig('comparaison geop grad', dpi=600)
+#plt.colorbar(contour,label=f'{file["z"].long_name} ({file["z"].units})', orientation='horizontal', fraction=0.05, pad=0.15)
+#plt.savefig('what you want', dpi=600)
 plt.show()
