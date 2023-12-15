@@ -63,6 +63,8 @@ for i in range(len(lat)) :
             vgx[i,j]=-(1/(2*omega*np.sin(np.radians(lat[i]))))*grady[i,j]
             vgy[i,j]=(1/(2*omega*np.sin(np.radians(lat[i]))))*gradx[i,j]
 
+#real wind for comparison
+
 wind_u=file.variables['u'][:]
 wind_v=file.variables['v'][:]
 wind_u500=wind_u[0,0]
@@ -73,22 +75,19 @@ wind_v1000=wind_v[0,1]
 u_comp=vgx-wind_u1000
 v_comp=vgy-wind_v1000
 
-lon, lat = np.meshgrid(lon, lat)
+lon, lat = np.meshgrid(lon, lat) #meshgrid
 
 N = np.sqrt( vgx**2 + vgy**2 )  # normalize data
 U1, V1 = vgx/N, vgy/N
 color = N
-
-U1[340:380]
-V1[340:380]
-color[340:380]=0
+color[340:380]=0 #we neglect the magnitude value around the equator (2.5° and -2.5°)
 
 N_comp = np.sqrt( u_comp**2 + v_comp**2 )
 U , V = u_comp/N_comp , v_comp/N_comp
-N_comp[340:380]=0
+N_comp[340:380]=0 #we neglect the magnitude value around the equator (2.5° and -2.5°)
 levels_comp=np.arange(0,150,10)
 
-fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=90, central_latitude=0)})
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=0, central_latitude=0)})
 
 ax.set_global()
 ax.coastlines(resolution='110m')
