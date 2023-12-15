@@ -1,0 +1,44 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature   
+
+
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc')
+
+lon = file.variables['longitude'][:]
+lat = file.variables['latitude'][:]
+
+wind_u=file.variables['u'][:]
+wind_v=file.variables['v'][:]
+wind_u500=wind_u[0,0]
+wind_v500=wind_v[0,0]
+wind_u1000=wind_u[0,1]
+wind_v1000=wind_v[0,1]
+
+magnitude500=np.zeros((len(lat),len(lon)))
+magnitude1000=np.zeros((len(lat),len(lon)))
+
+magnitude500=np.sqrt(wind_u500**2+wind_v500**2)
+magnitude1000=np.sqrt(wind_u1000**2+wind_v1000**2)
+
+U500,V500 = wind_u500/magnitude500,wind_v500/magnitude500
+U1000,V1000 = wind_u1000/magnitude1000,wind_v1000/magnitude1000
+
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=10, central_latitude=50)})
+
+ax.set_global()
+ax.coastlines(resolution='110m')
+ax.add_feature(cfeature.BORDERS, linestyle=':')
+ax.add_feature(cfeature.LAND, edgecolor='k')
+
+#uncomment the desired line to get the real wind at 500 hPa or at 1000 hPa
+#vent à 500hPa
+# q=ax.quiver(lon[::10], lat[::10], U500[::10,::10], V500[::10,::10], magnitude500[::10,::10],cmap='viridis', transform=ccrs.PlateCarree(), scale=50)
+#vent à 1000hPa
+#q=ax.quiver(lon[::10], lat[::10], U1000[::10,5::10], V1000[::10,5::10], magnitude1000[::10,::10],cmap='viridis', transform=ccrs.PlateCarree(), scale=50)
+clb=plt.colorbar(q,orientation='vertical')
+clb.ax.set_title('wind ' f'({file["u"].units})')
+#plt.savefig('what you want', dpi=600)
+plt.show()
