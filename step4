@@ -1,1 +1,107 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature   
 
+
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc')
+geop = file['z'][:]
+omega=2*np.pi/86400
+r=6371000
+geop500=geop[0,1]
+
+lon = file.variables['longitude'][:]
+lat = file.variables['latitude'][:]
+
+delt_lambda = np.radians(360)/len(lon)  #dlon
+delt_phi = np.radians(180)/len(lat) #dlat
+
+geo_phideriv = np.zeros((len(lat),len(lon)))
+geo_lambdaderiv = np.zeros((len(lat),len(lon)))
+
+gradx=np.zeros((len(lat),len(lon)))
+grady=np.zeros((len(lat),len(lon)))
+
+#calculating gradx and grady:
+
+for i in range(len(lat)-1) :
+    for j in range(len(lon)-1) :
+        if i==0 and j<=719 :
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i+1,j+720])/(2*delt_phi)
+        if i==0 and j>719 :
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i+1,1440-j])/(2*delt_phi)
+        if i==720 and j<=719 :
+            geo_phideriv[i,j]=-(geop500[i-1,j]-geop500[i-1,j+720])/(2*delt_phi)
+        if i==720 and j>719 :
+            geo_phideriv[i,j]=-(geop500[i-1,j]-geop500[i-1,1440-j])/(2*delt_phi)
+        if j==1439 and i!=0:
+            geo_lambdaderiv[i,j]=(geop500[i,0]-geop500[i,1438])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+        if j==0 and i!=0:
+            geo_lambdaderiv[i,j]=(geop500[i,1]-geop500[i,1439])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+        else:
+            geo_lambdaderiv[i,j]=(geop500[i,j+1]-geop500[i,j-1])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+
+for i in range(len(lat)) :
+    for j in range(len(lon)) :
+        gradx[i,j]=((1/(r*np.cos(np.radians(lat[i]))))*geo_lambdaderiv[i,j])
+        grady[i,j]=((1/r)*geo_phideriv[i,j])
+
+#calculating geo wind direction and magnitude:
+
+vgx=np.zeros((len(lat),len(lon)))
+vgy=np.zeros((len(lat),len(lon)))
+for i in range(len(lat)) :
+    for j in range(len(lon)) :
+        if i>=360 :
+            vgx[i,j]=-(1/(2*omega*np.sin(np.radians(lat[i]))))*grady[i,j]
+            vgy[i,j]=(1/(2*omega*np.sin(np.radians(lat[i]))))*gradx[i,j]
+        else:
+            vgx[i,j]=-(1/(2*omega*np.sin(np.radians(lat[i]))))*grady[i,j]
+            vgy[i,j]=(1/(2*omega*np.sin(np.radians(lat[i]))))*gradx[i,j]
+
+wind_u=file.variables['u'][:]
+wind_v=file.variables['v'][:]
+wind_u500=wind_u[0,0]
+wind_v500=wind_v[0,0]
+wind_u1000=wind_u[0,1]
+wind_v1000=wind_v[0,1]
+
+u_comp=vgx-wind_u1000
+v_comp=vgy-wind_v1000
+
+lon, lat = np.meshgrid(lon, lat)
+
+N = np.sqrt( vgx**2 + vgy**2 )  # normalize data
+U1, V1 = vgx/N, vgy/N
+color = N
+
+U1[340:380]
+V1[340:380]
+color[340:380]=0
+
+N_comp = np.sqrt( u_comp**2 + v_comp**2 )
+U , V = u_comp/N_comp , v_comp/N_comp
+N_comp[340:380]=0
+levels_comp=np.arange(0,150,10)
+
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=90, central_latitude=0)})
+
+ax.set_global()
+ax.coastlines(resolution='110m')
+ax.add_feature(cfeature.BORDERS, linestyle=':')
+ax.add_feature(cfeature.LAND, edgecolor='k')
+
+zero=np.zeros((721,1440))
+# q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis', scale=50)
+#ax.contour(lon[75:625:10,5::10], lat[75:625:10,5::10], N[75:625:10,5::10], cmap='plasma', transform=ccrs.PlateCarree())
+contour = ax.contourf(lon, lat, N_comp, levels_comp,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
+# clb=plt.colorbar(q,orientation='vertical')
+# clb.ax.set_title('u_g (m s**-1)')
+clb=plt.colorbar(contour,orientation='vertical')
+clb.ax.set_title('Magnitude difference (m/s)')
+plt.savefig('v_g comp v_r 90;0 1000', dpi=600)
+plt.show()
