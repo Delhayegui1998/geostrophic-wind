@@ -1,1 +1,52 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\step5.nc')
+#print(file)
+geop = file['z'][:]
+vorticity = file['vo'][:]
+
+#put second 0 to 1 to get the value at 1000 hPa
+geop500=geop[0,0] 
+vorticity=vorticity[0,0]
+
+lon = file.variables['longitude'][:]
+lat = file.variables['latitude'][:]
+
+
+# Create a meshgrid for latitudes and longitudes
+lon, lat = np.meshgrid(lon, lat)
+            
+# Create the plot with Orthographic projection centered over Europe
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=10, central_latitude=50)})
+            
+# Set up map features
+ax.set_global()
+ax.coastlines(resolution='110m')
+ax.add_feature(cfeature.BORDERS, linestyle=':')
+ax.add_feature(cfeature.LAND, edgecolor='k')
+
+# Plot the geopotential data
+levels = np.arange(48000,59000 + 100,1000)
+contour = ax.contourf(lon, lat, geop500, levels = levels,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
+
+# Add color bar
+plt.colorbar(contour, orientation='horizontal', fraction=0.05, pad=0.15)
+
+# Show the plot
+plt.savefig('geopotentiel', dpi=300)
+plt.show()
+
+# # Plot the geopotential data
+# levels = np.arange(np.min(vorticity),np.max(vorticity),(np.max(vorticity)-np.min(vorticity))/15)
+# contour = ax.contourf(lon, lat, vorticity, levels = levels,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
+
+# # Add color bar
+# plt.colorbar(contour, orientation='vertical', fraction=0.05, pad=0.15)
+
+# # Show the plot
+# plt.savefig('vorticité', dpi=300)
+# plt.show()
