@@ -1,0 +1,89 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature   
+import matplotlib.colors
+
+
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc')
+geop = file['z'][:]
+omega=1
+r=6371000
+geop500=geop[0,0]
+
+lon = file.variables['longitude'][:]
+lat = file.variables['latitude'][:]
+
+delt_phi = np.radians(180)/len(lat)  #dlon
+delt_lambda = np.radians(360)/len(lon) #dlat
+
+
+geo_phideriv = np.zeros((len(lat),len(lon)))
+geo_lambdaderiv = np.zeros((len(lat),len(lon)))
+
+gradx=np.zeros((len(lat),len(lon)))
+grady=np.zeros((len(lat),len(lon)))
+
+vgx=np.zeros((len(lat),len(lon)))
+vgy=np.zeros((len(lat),len(lon)))
+
+
+for i in range(len(lat)-1) :
+    for j in range(len(lon)-1) :
+        if i==0 and j<=719 :
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i+1,j+720])/(2*delt_phi)
+        if i==0 and j>719 :
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i+1,1440-j])/(2*delt_phi)
+        if i==720 and j<=719 :
+            geo_phideriv[i,j]=-(geop500[i-1,j]-geop500[i-1,j+720])/(2*delt_phi)
+        if i==720 and j>719 :
+            geo_phideriv[i,j]=-(geop500[i-1,j]-geop500[i-1,1440-j])/(2*delt_phi)
+        if j==1439 and i!=0:
+            geo_lambdaderiv[i,j]=(geop500[i,0]-geop500[i,1438])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+        if j==0 and i!=0:
+            geo_lambdaderiv[i,j]=(geop500[i,1]-geop500[i,1439])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+        else:
+            geo_lambdaderiv[i,j]=(geop500[i,j+1]-geop500[i,j-1])/(2*delt_lambda)
+            geo_phideriv[i,j]=-(geop500[i+1,j]-geop500[i-1,j])/(2*delt_phi)
+
+
+for i in range(len(lat)) :
+    for j in range(len(lon)) :
+        gradx[i,j]=((1/(r*np.cos(np.radians(lat[i]))))*geo_lambdaderiv[i,j])
+        grady[i,j]=((1/r)*geo_phideriv[i,j])
+        
+
+N = np.sqrt( gradx**2 + grady**2 )  # normalize data
+Ni = np.sqrt( gradx**2)
+Nj = np.sqrt( grady**2)
+U1, V1 = gradx/N, grady/N
+U = gradx/Ni
+V = grady/Nj
+
+color = N
+color_i = Ni
+color_j = Nj
+
+lon, lat = np.meshgrid(lon, lat)
+
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=10, central_latitude=50)})
+
+ax.set_global()
+ax.coastlines(resolution='110m')
+ax.add_feature(cfeature.BORDERS, linestyle=':')
+ax.add_feature(cfeature.LAND, edgecolor='k')
+
+zero=np.zeros((721,1440))
+levels = np.arange(48000,59000 + 100,1000)
+contour = ax.contourf(lon, lat, geop500, levels = levels,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both') #geop500
+# q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U[40:680:10,::10], zero[40:680:10,::10], color_i[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #zonale
+# q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], zero[40:680:10,::10], V[40:680:10,::10], color_j[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #mérid
+q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis',scale=50) #both
+clb=plt.colorbar(q,orientation='vertical')
+clb.ax.set_title('Grad Geopotential (m s**-2)')
+plt.colorbar(contour,label=f'{file["z"].long_name} ({file["z"].units})', orientation='horizontal', fraction=0.05, pad=0.15)
+plt.savefig('comparaison geop grad', dpi=600)
+plt.show()
