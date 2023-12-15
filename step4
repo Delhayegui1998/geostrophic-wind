@@ -72,8 +72,8 @@ wind_v500=wind_v[0,0]
 wind_u1000=wind_u[0,1]
 wind_v1000=wind_v[0,1]
 
-u_comp=vgx-wind_u1000
-v_comp=vgy-wind_v1000
+u_comp=vgx-wind_u500
+v_comp=vgy-wind_v500
 
 lon, lat = np.meshgrid(lon, lat) #meshgrid
 
@@ -87,6 +87,7 @@ U , V = u_comp/N_comp , v_comp/N_comp
 N_comp[340:380]=0 #we neglect the magnitude value around the equator (2.5° and -2.5°)
 levels_comp=np.arange(0,150,10)
 
+# projection of earth map, modify the value of central_longitude and central_latitude to move the center point of the fig
 fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=0, central_latitude=0)})
 
 ax.set_global()
@@ -94,13 +95,16 @@ ax.coastlines(resolution='110m')
 ax.add_feature(cfeature.BORDERS, linestyle=':')
 ax.add_feature(cfeature.LAND, edgecolor='k')
 
-zero=np.zeros((721,1440))
-# q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis', scale=50)
-#ax.contour(lon[75:625:10,5::10], lat[75:625:10,5::10], N[75:625:10,5::10], cmap='plasma', transform=ccrs.PlateCarree())
-contour = ax.contourf(lon, lat, N_comp, levels_comp,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
-# clb=plt.colorbar(q,orientation='vertical')
-# clb.ax.set_title('u_g (m s**-1)')
-clb=plt.colorbar(contour,orientation='vertical')
-clb.ax.set_title('Magnitude difference (m/s)')
-plt.savefig('v_g comp v_r 90;0 1000', dpi=600)
+#geostrophic wind
+q=ax.quiver(lon[40:680:10,::10], lat[40:680:10,::10], U1[40:680:10,::10], V1[40:680:10,::10], color[40:680:10,::10],transform=ccrs.PlateCarree(), cmap='viridis', scale=50)
+clb=plt.colorbar(q,orientation='vertical')
+clb.ax.set_title('u_g (m s**-1)')
+#plt.savefig('what you want', dpi=600)
 plt.show()
+
+#comparison geo wind and real wind
+#contour = ax.contourf(lon, lat, N_comp, levels_comp,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
+#clb=plt.colorbar(contour,orientation='vertical')
+#clb.ax.set_title('Magnitude difference (m/s)')
+#plt.savefig('what you want', dpi=600)
+#plt.show()
