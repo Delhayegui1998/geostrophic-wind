@@ -5,11 +5,11 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature   
 
 
-file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc')
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc') #substitute with the path to your dataset in your machine
 geop = file['z'][:]
 omega=2*np.pi/86400
-r=6371000
-geop500=geop[0,1]
+r=6371000 #mean radius of the earth
+geop500=geop[0,0] #switch the second zero to 1 for the 1000hPa geopotential
 
 lon = file.variables['longitude'][:]
 lat = file.variables['latitude'][:]
