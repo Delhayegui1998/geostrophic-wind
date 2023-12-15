@@ -1,1 +1,35 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
+file = nc.Dataset(r'C:\Users\Broke\Desktop\projet 1\data.nc') #substitute with the path to your dataset in your machine
+geop = file['z'][:]
+
+geop500=geop[0,1] #geopotential at 500hPa
+
+lon = file.variables['longitude'][:]
+lat = file.variables['latitude'][:]
+
+# meshgrid for latitudes and longitudes
+lon, lat = np.meshgrid(lon, lat)
+            
+# projection of earth map, modify the value of central_longitude and central_longitude to move the center point of the fig
+fig, ax = plt.subplots(subplot_kw={'projection': ccrs.Orthographic(central_longitude=90, central_latitude=0)})
+
+ax.set_global()
+ax.coastlines(resolution='110m')
+ax.add_feature(cfeature.BORDERS, linestyle=':')
+ax.add_feature(cfeature.LAND, edgecolor='k')
+
+# geopotential on the map
+levels = np.arange(48000,59000 + 100,1000)
+contour = ax.contourf(lon, lat, geop500, levels = levels,transform=ccrs.PlateCarree(), cmap = "tab20b", extend='both')
+
+# Add color bar
+plt.colorbar(contour, label=f'{file["z"].long_name} ({file["z"].units})',orientation='horizontal', fraction=0.05, pad=0.15)
+
+# Show the plot
+plt.savefig('geopotential at 500hPa', dpi=600)
+plt.show()
